@@ -1,0 +1,84 @@
+version: "2"
+services:
+  namenode:
+    image: apache/hadoop:3
+    platform: linux/amd64
+    hostname: namenode
+    container_name: namenode  # Explicit container name
+    tty: true                # Keep the console session open
+    stdin_open: true         # Enable console interaction
+    volumes:
+      - ./Makefile:/opt/hadoop/Makefile
+      - ./resources:/opt/hadoop/resources   # Mounting the resources folder here
+      - ./mapreduce:/opt/hadoop/mapreduce
+      - ./resources/log4j.properties:/opt/hadoop/etc/hadoop/log4j.properties  # Mount log4j properties
+    ports:
+      - 9870:9870
+    env_file:
+      - ./config
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+      HDFS_SITE_XML_dfs.webhdfs.enabled: "true"
+    command: ["hdfs", "namenode"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  datanode:
+    image: apache/hadoop:3
+    platform: linux/amd64
+    container_name: datanode  # Explicit container name
+    tty: true
+    stdin_open: true
+    command: ["hdfs", "datanode"]
+    env_file:
+      - ./config
+    volumes:
+      - ./resources:/opt/hadoop/resources   # Mounting the resources folder here
+      - ./resources/log4j.properties:/opt/hadoop/etc/hadoop/log4j.properties  # Mount log4j properties
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  resourcemanager:
+    image: apache/hadoop:3
+    platform: linux/amd64
+    hostname: resourcemanager
+    container_name: resourcemanager  # Explicit container name
+    tty: true
+    stdin_open: true
+    command: ["yarn", "resourcemanager"]
+    ports:
+      - 8088:8088
+    env_file:
+      - ./config
+    volumes:
+      - ./test.sh:/opt/test.sh
+      - ./resources/log4j.properties:/opt/hadoop/etc/hadoop/log4j.properties  # Mount log4j properties
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  nodemanager:
+    image: apache/hadoop:3
+    platform: linux/amd64
+    container_name: nodemanager  # Explicit container name
+    tty: true
+    stdin_open: true
+    command: ["yarn", "nodemanager"]
+    env_file:
+      - ./config
+    volumes:
+      - ./resources:/opt/hadoop/resources   # Mounting the resources folder here
+      - ./resources/log4j.properties:/opt/hadoop/etc/hadoop/log4j.properties  # Mount log4j properties
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

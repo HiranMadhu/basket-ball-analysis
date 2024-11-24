@@ -1,0 +1,45 @@
+docker-compose up --build
+docker exec -it namenode bash
+
+hdfs dfs -mkdir -p /user/hadoop/input
+hdfs dfs -put /opt/hadoop/resources/dataset.csv /user/hadoop/input/
+hdfs dfs -ls /user/hadoop/input/
+hadoop jar mapreduce/src/main/java/com/example/mapreduce-example-1.0-SNAPSHOT.jar NBAAnalysis /user/hadoop/input /user/hadoop/outputtemp /user/hadoop/output
+hdfs dfs -cat /user/hadoop/outputtemp/part-r-00000 > tem
+grep "20000001" tem
+
+
+
+hdfs dfs -mkdir -p /user/hadoop/input
+hdfs dfs -put /opt/hadoop/resources/dataset2.csv /user/hadoop/input/
+hdfs dfs -ls /user/hadoop/input/
+hadoop jar mapreduce/src/main/java/com/example/mapreduce-example-1.0-SNAPSHOT.jar NBAAnalysis /user/hadoop/input /user/hadoop/outputtemp /user/hadoop/output
+hdfs dfs -cat /user/hadoop/output/part-r-00000
+
+
+
+hdfs dfs -mkdir -p /user/hadoop/input
+hdfs dfs -put /opt/hadoop/resources/dataset.csv /user/hadoop/input/
+hdfs dfs -ls /user/hadoop/input/
+hadoop jar mapreduce/src/main/java/com/example/mapreduce-example-1.0-SNAPSHOT.jar NBAAnalysis /user/hadoop/input /user/hadoop/outputtemp /user/hadoop/output
+hdfs dfs -cat /user/hadoop/output/part-r-00000 
+
+
+  NYK  PHI
+1  26   23 
+2  25   18
+3  29   13
+4  21   18
+
+
+20000001-1-NYK  23
+20000001-1-PHI  26
+
+20000001-2-NYK  23
+20000001-2-PHI  25
+
+20000001-3-NYK  8
+20000001-3-PHI  29
+
+20000001-4-NYK  45  
+20000001-4-PHI  21
