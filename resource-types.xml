@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <resource>
+        <name>memory</name>
+        <value>1024</value>
+    </resource>
+    <resource>
+        <name>vCores</name>
+        <value>1</value>
+    </resource>
+</configuration>
