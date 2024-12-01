@@ -1,0 +1,6 @@
+docker compose -f docker-compose.yaml up -d
+
+docker exec -it hive-server bash
+
+hive -f /opt/top_teams.sql
+hive -f /opt/quater_avarage.sql
