@@ -47,7 +47,7 @@ public class PlayerPointsAnalysis {
 
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String[] fields = value.toString().split(",");
+            String[] fields = (value.toString() + " ").split(",");
             if (fields.length != 27) {
                 return; // Skip invalid records
             }
@@ -129,6 +129,8 @@ public class PlayerPointsAnalysis {
 
 
 public static class PointsSumReducer extends Reducer<Text, IntWritable, Text, Text> {
+    private int maxPoints = 0;
+    private String topPlayer = "";
 
     @Override
     public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
@@ -139,8 +141,16 @@ public static class PointsSumReducer extends Reducer<Text, IntWritable, Text, Te
             totalPoints += val.get();
         }
 
-        String playerName = key.toString().replace("-", " ");
-        context.write(new Text(playerName), new Text("scored " + totalPoints + " points in the full tournament"));
+        if (totalPoints > maxPoints) {
+            maxPoints = totalPoints;
+            topPlayer = key.toString(); // Store the name of the player with max points
+        }
+
+    }
+    @Override
+    protected void cleanup(Context context) throws IOException, InterruptedException {
+        String playerName = topPlayer.toString().replace("-", " ");
+        context.write(new Text(playerName), new Text("scored " + maxPoints + " points in the full tournament"));
     }
 }
 

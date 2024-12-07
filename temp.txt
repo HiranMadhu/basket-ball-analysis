@@ -25,3 +25,7 @@ PLAYER3_TEAM_NICKNAME
 SCORE
 SCOREMARGIN
 VISITORDESCRIPTION
+
+
+
+city,city_ascii,lat,lng,country,iso2,iso3,admin_name,capital,population,id

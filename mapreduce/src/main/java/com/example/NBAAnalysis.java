@@ -21,20 +21,17 @@ public class NBAAnalysis {
         
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String[] fields = value.toString().split(",");
-            if (fields.length < 25) {
+            String[] fields = (value.toString() + " ").split(",");
+            if (fields.length != 27) {
                 return; // Skip invalid records
             }
 
             String gameID = fields[2].trim();
             String period = fields[5].trim();
             String score = fields[24].trim();
-            String teamA = fields[11].trim();
-            String teamB = fields[17].trim();
-            String teamC = fields[23].trim();
-            // String teamA = fields[8].trim();
-            // String teamB = fields[14].trim();
-            // String teamC = fields[20].trim();
+            String player1_team = fields[11].trim();
+            String HomeDescription = fields[3].trim();
+            String VisitorDescription = fields[26].trim();
 
             if(score.isEmpty() || period.isEmpty() || gameID.isEmpty()){
                 return;
@@ -44,30 +41,22 @@ public class NBAAnalysis {
             LinkedHashSet<String> teams = gameTeamsMap.getOrDefault(gameID, new LinkedHashSet<>());
 
             if (teams.size() < 2) {
-                // First add teamA if it's not already in the set
-                if (!teamA.isEmpty() && !teams.contains(teamA)) {
-                    teams.add(teamA);
+                if (!player1_team.isEmpty() && !teams.contains(player1_team) && (!HomeDescription.isEmpty() && VisitorDescription.isEmpty())) {
+                    teams.add(player1_team);
                 }
-                // Then, if teamB is not the same as teamA, add teamB
-                if (!teamB.isEmpty() && !teamB.equals(teamA) && !teams.contains(teamB)) {
-                    teams.add(teamB);
-                }
-                // Add teamC only if it's not the same as teamA or teamB
-                if (!teamC.isEmpty() && !teamC.equals(teamA) && !teamC.equals(teamB) && !teams.contains(teamC)) {
-                    teams.add(teamC);
+                if (!player1_team.isEmpty() && !teams.contains(player1_team) && (HomeDescription.isEmpty() && !VisitorDescription.isEmpty())) {
+                    teams.add(player1_team);
                 }
                 gameTeamsMap.put(gameID, teams);
             }
 
-            // Handle missing team names by inferring from stored data
-            if (teamA.isEmpty() || teamB.isEmpty() || teamA == teamB) {
-                if (teams.size() < 2) {
-                    return;
-                }
+            if (teams.size() < 2) {
+                return;
             }
+
             Iterator<String> iter = teams.iterator();
-            teamA = iter.hasNext() ? iter.next() : "";
-            teamB = iter.hasNext() ? iter.next() : "";
+            String teamA = iter.hasNext() ? iter.next() : "";
+            String teamB = iter.hasNext() ? iter.next() : "";
 
             // Parse and emit scores
             try {
@@ -75,8 +64,8 @@ public class NBAAnalysis {
                 if (scores.length < 2) {
                     return; // Invalid score format
                 }
-                int scoreA = Integer.parseInt(scores[0].trim());
-                int scoreB = Integer.parseInt(scores[1].trim());
+                int scoreA = Integer.parseInt(scores[1].trim());
+                int scoreB = Integer.parseInt(scores[0].trim());
 
                 // Emit scores with inferred or stored team names
                 context.write(new Text(gameID + "-" + period + "-" + teamA), new Text(String.valueOf(scoreA)));
