@@ -25,21 +25,16 @@ public class NBAAnalysis {
             if (fields.length != 27) {
                 return; // Skip invalid records
             }
-
             String gameID = fields[2].trim();
             String period = fields[5].trim();
             String score = fields[24].trim();
             String player1_team = fields[11].trim();
             String HomeDescription = fields[3].trim();
             String VisitorDescription = fields[26].trim();
-
             if(score.isEmpty() || period.isEmpty() || gameID.isEmpty()){
                 return;
             }
-
-            // Update the game-to-teams map
             LinkedHashSet<String> teams = gameTeamsMap.getOrDefault(gameID, new LinkedHashSet<>());
-
             if (teams.size() < 2) {
                 if (!player1_team.isEmpty() && !teams.contains(player1_team) && (!HomeDescription.isEmpty() && VisitorDescription.isEmpty())) {
                     teams.add(player1_team);
@@ -49,16 +44,12 @@ public class NBAAnalysis {
                 }
                 gameTeamsMap.put(gameID, teams);
             }
-
             if (teams.size() < 2) {
                 return;
             }
-
             Iterator<String> iter = teams.iterator();
             String teamA = iter.hasNext() ? iter.next() : "";
             String teamB = iter.hasNext() ? iter.next() : "";
-
-            // Parse and emit scores
             try {
                 String[] scores = score.split("-");
                 if (scores.length < 2) {
@@ -95,7 +86,6 @@ public class NBAAnalysis {
                         // Calculate cumulative score
             int maxScore = 0;
             for (Text value : values) {
-                // /context.write(new Text(gameID + "-" + period + "-" + teamName), new Text(String.valueOf(value)));
                 int score = Integer.parseInt(value.toString());
                 if (score > maxScore) {
                     maxScore = score;
@@ -143,31 +133,23 @@ public class NBAAnalysis {
         }
     }
 
-    public static class FinalReducer extends Reducer<Text, Text, Text, Text> {
-        
+    public static class FinalReducer extends Reducer<Text, Text, Text, Text> { 
         private Map<String, Map<String, Integer>> teamQuarterScores = new HashMap<>();
-        
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             String[] keyParts = key.toString().split("-");
             if (keyParts.length < 2) {
                 return; // Skip invalid keys
             }
-
             String teamName = keyParts[0];
             String period = keyParts[1];
-
-            // Sum up scores for the current key
             int totalScore = 0;
             for (Text value : values) {
                 totalScore += Integer.parseInt(value.toString());
             }
-
-            // Store the total score in the teamQuarterScores map
             Map<String, Integer> quarterScores = teamQuarterScores.getOrDefault(teamName, new HashMap<>());
             quarterScores.put(period, quarterScores.getOrDefault(period, 0) + totalScore);
             teamQuarterScores.put(teamName, quarterScores);
         }
-
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
             // Iterate over all teams

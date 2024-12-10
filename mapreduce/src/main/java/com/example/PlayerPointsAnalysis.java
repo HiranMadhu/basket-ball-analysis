@@ -17,57 +17,37 @@ import java.util.regex.Pattern;
 
 public class PlayerPointsAnalysis {
 
-    // Mapper Class
     public static class PointsMapper extends Mapper<Object, Text, Text, IntWritable> {
-        // Mapper logic
         private static final Pattern POINTS_PATTERN = Pattern.compile("(\\d+) PTS");
-
-
-        // Helper method to extract player name from description string
         private String extractPlayerName(String description, int pointsIndex) {
             if (pointsIndex <= 0) {
-                return null; // Invalid index
+                return null; 
             }
-
-            // Get the substring before the points pattern
             String subStr = description.substring(0, pointsIndex).trim();
-
-            // Split the substring into words
             String[] words = subStr.split(" ");
-
-            // Loop through words to find the first non-capitalized word
             int i = 0;
             while (i < words.length && words[i].equals(words[i].toUpperCase())) {
-                i++; // Skip capitalized words
+                i++; 
             }
-
-            // Return the next word as player name, if found
             return i < words.length ? words[i] : null;
         }
-
-
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String[] fields = (value.toString() + " ").split(",");
             if (fields.length != 27) {
-                return; // Skip invalid records
+                return; 
             }
-            String gameID = fields[2].trim(); // Assuming GameID is in field 0
-            String description = fields[3].trim() + " " + fields[26].trim(); // Fields 3 and 26 (adjusting for zero-indexed)
+            String gameID = fields[2].trim(); 
+            String description = fields[3].trim() + " " + fields[26].trim(); 
             String playerName = null;
             int points = -1;
-
-            // Extract points and player name from description
             Matcher matcher = POINTS_PATTERN.matcher(description);
             if (matcher.find()) {
-                points = Integer.parseInt(matcher.group(1).trim()); // Extract points
+                points = Integer.parseInt(matcher.group(1).trim()); 
                 playerName = extractPlayerName(description, matcher.start());
             }
-
             if (playerName == null || points == -1) {
-                return; // Skip if no valid player name or points
+                return; 
             }
-
-            // Match playerName with full names in fields 19, 13, or 7
             String fullName = null;
             for (int index : new int[]{19, 13, 7}) {
                 if (fields[index].contains(playerName)) {
@@ -75,12 +55,9 @@ public class PlayerPointsAnalysis {
                     break;
                 }
             }
-
             if (fullName == null) {
-                return; // Skip if no matching full name
+                return; 
             }
-
-            // Emit gameID_playerName as key and points as value
             context.write(new Text(gameID + "_" + fullName.replace(" ", "-")), new IntWritable(points));
         }
     }
@@ -92,12 +69,10 @@ public class PlayerPointsAnalysis {
         public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
             int maxPoint = 0;
 
-            // Iterate over the values to find the maximum points
             for (IntWritable val : values) {
-                maxPoint = Math.max(maxPoint, val.get());  // Compare and keep the maximum value
+                maxPoint = Math.max(maxPoint, val.get()); 
             }
 
-            // Emit the player name with the max point of the match
             context.write(key,  new IntWritable(maxPoint));
         }
     }
@@ -107,21 +82,21 @@ public class PlayerPointsAnalysis {
         @Override
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
-            String[] fields = line.split("\t"); // Default delimiter is tab
+            String[] fields = line.split("\t"); 
 
             if (fields.length != 2) {
-                return; // Skip invalid records
+                return; 
             }
 
-            String compositeKey = fields[0]; // This should be in the format gameID_playerName
-            int points = Integer.parseInt(fields[1].trim()); // Parse the points
+            String compositeKey = fields[0]; 
+            int points = Integer.parseInt(fields[1].trim()); 
 
             String[] keyParts = compositeKey.split("_");
             if (keyParts.length < 2) {
-                return; // Skip invalid keys
+                return; 
             }
 
-            String playerName = keyParts[1]; // Extract the player name
+            String playerName = keyParts[1]; 
             context.write(new Text(playerName), new IntWritable(points));
         }
     }
@@ -136,15 +111,17 @@ public static class PointsSumReducer extends Reducer<Text, IntWritable, Text, Te
     public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
         int totalPoints = 0;
 
-        // Sum the points across games for each player
         for (IntWritable val : values) {
             totalPoints += val.get();
         }
 
         if (totalPoints > maxPoints) {
             maxPoints = totalPoints;
-            topPlayer = key.toString(); // Store the name of the player with max points
+            topPlayer = key.toString();
         }
+
+        String playerName = key.toString().toString().replace("-", " ");
+        context.write(new Text(playerName), new Text("scored " + totalPoints + " points in the full tournament"));
 
     }
     @Override
@@ -170,26 +147,21 @@ public static class PointsSumReducer extends Reducer<Text, IntWritable, Text, Te
         job1.setReducerClass(PointsReducer.class);
         job1.setOutputKeyClass(Text.class);
         job1.setOutputValueClass(IntWritable.class);
-
         FileInputFormat.addInputPath(job1, new Path(args[0]));
         FileOutputFormat.setOutputPath(job1, new Path(args[1]));
 
         if (!job1.waitForCompletion(true)) {
             System.exit(1);
         }
-// Second Job: Sum points across games for each player
-Job job2 = Job.getInstance(conf, "Player Points Sum");
-job2.setJarByClass(PlayerPointsAnalysis.class);
-job2.setMapperClass(PointsSumMapper.class);
-job2.setReducerClass(PointsSumReducer.class);
-
-job2.setOutputKeyClass(Text.class); // Player name
-job2.setOutputValueClass(IntWritable.class); // Total points
-
-FileInputFormat.addInputPath(job2, new Path(args[1])); // Output of Job 1
-FileOutputFormat.setOutputPath(job2, new Path(args[2])); // Final output path
-
-
+        // Second Job: Sum points across games for each player
+        Job job2 = Job.getInstance(conf, "Player Points Sum");
+        job2.setJarByClass(PlayerPointsAnalysis.class);
+        job2.setMapperClass(PointsSumMapper.class);
+        job2.setReducerClass(PointsSumReducer.class);
+        job2.setOutputKeyClass(Text.class); // Player name
+        job2.setOutputValueClass(IntWritable.class); // Total points
+        FileInputFormat.addInputPath(job2, new Path(args[1])); // Output of Job 1
+        FileOutputFormat.setOutputPath(job2, new Path(args[2])); // Final output path
         System.exit(job2.waitForCompletion(true) ? 0 : 1);
     }
 }
