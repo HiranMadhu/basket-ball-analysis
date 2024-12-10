@@ -120,9 +120,6 @@ public static class PointsSumReducer extends Reducer<Text, IntWritable, Text, Te
             topPlayer = key.toString();
         }
 
-        String playerName = key.toString().toString().replace("-", " ");
-        context.write(new Text(playerName), new Text("scored " + totalPoints + " points in the full tournament"));
-
     }
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
